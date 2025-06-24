@@ -111,7 +111,7 @@ client.on(Events.InteractionCreate, async interaction => {
 client.login(process.env.TOKEN);
 const express = require("express");
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 8080;
 
 app.get("/", (req, res) => {
   res.send("Bot je aktivní ✅");

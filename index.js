@@ -17,9 +17,6 @@ const client = new Client({
   ]
 });
 
-let lastPingMessage = null;
-const roleId = "1313235061675655228"; // Zadej ID své role
-
 client.once(Events.ClientReady, () => {
   console.log(`✅ Přihlášen jako ${client.user.tag}`);
 });
@@ -29,7 +26,7 @@ client.on(Events.MessageCreate, async message => {
     const randomNumber = Math.floor(Math.random() * 900) + 100;
 
     const embed = new EmbedBuilder()
-      .setColor(0x00a86e)
+      .setColor(0x00A86E)
       .setTitle("Náhodná frekvence")
       .setDescription(`Tvá frekvence je: **${randomNumber}**`);
 
@@ -40,46 +37,29 @@ client.on(Events.MessageCreate, async message => {
 
     const row = new ActionRowBuilder().addComponents(button);
 
-    // Odeslat úvodní zprávu s embedem a tlačítkem
+    const roleId = "123456789012345678"; // <-- SEM zadej ID role, kterou chceš pingnout
+
     await message.channel.send({
-      content: `<@&${roleId}>`,
+      content: `<@&${roleId}>`, // zmínka na roli
       embeds: [embed],
-      components: [row],
-      allowedMentions: { roles: [roleId] }
+      components: [row]
     });
   }
 });
 
 client.on(Events.InteractionCreate, async interaction => {
   if (!interaction.isButton()) return;
-  if (interaction.customId !== "random_number") return;
 
-  const newNumber = Math.floor(Math.random() * 900) + 100;
+  if (interaction.customId === "random_number") {
+    const newNumber = Math.floor(Math.random() * 900) + 100;
 
-  const newEmbed = new EmbedBuilder()
-    .setColor(0x00a86e)
-    .setTitle("Nová frekvence")
-    .setDescription(`Tvá frekvence: **${newNumber}**`);
+    const newEmbed = new EmbedBuilder()
+      .setColor(0x00A86E)
+      .setTitle("Nová frekvence")
+      .setDescription(`Tvá frekvence: **${newNumber}**`);
 
-  // ❌ Smazat předchozí ping, pokud existuje
-  if (lastPingMessage) {
-    try {
-      await lastPingMessage.delete();
-    } catch (err) {
-      console.error("Nepodařilo se smazat starý ping:", err.message);
-    }
+    await interaction.update({ embeds: [newEmbed] });
   }
-
-  // ✅ Poslat pouze zmínku role
-  lastPingMessage = await interaction.channel.send({
-    content: `<@&${roleId}>`,
-    allowedMentions: { roles: [roleId] }
-  });
-
-  // Aktualizovat embed v původní zprávě (neping zprávě)
-  await interaction.update({
-    embeds: [newEmbed]
-  });
 });
 
 client.login(process.env.TOKEN);

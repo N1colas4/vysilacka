@@ -8,7 +8,9 @@ const {
   EmbedBuilder,
   Events,
 } = require('discord.js');
+const express = require("express");
 
+// === Discord Client ===
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
@@ -24,12 +26,13 @@ client.once(Events.ClientReady, () => {
 });
 
 client.on(Events.MessageCreate, async message => {
+  if (message.author.bot) return;
   if (message.content === "!vysilacka") {
     const randomNumber = Math.floor(Math.random() * 900) + 100;
 
     const embed = new EmbedBuilder()
-      .setColor(0xff0000)
-      .setTitle("Náhodná frekvence")
+      .setColor(0x000000) // ČERNÉ záhlaví
+      .setTitle("📻 Náhodná frekvence")
       .setDescription(`Tvá frekvence je: **${randomNumber}**`);
 
     const button = new ButtonBuilder()
@@ -41,7 +44,7 @@ client.on(Events.MessageCreate, async message => {
 
     const roleId = "1386850498509799555";
 
-    // Ping zpráva
+    // 🔔 Ping zpráva
     const pingMsg = await message.channel.send({
       content: `<@&${roleId}>`,
       allowedMentions: { roles: [roleId] }
@@ -85,13 +88,13 @@ client.on(Events.InteractionCreate, async interaction => {
   const newNumber = Math.floor(Math.random() * 900) + 100;
 
   const newEmbed = new EmbedBuilder()
-    .setColor(0xff0000)
-    .setTitle("Nová frekvence")
-    .setDescription(`Tvá frekvence: **${newNumber}**`);
+    .setColor(0x000000) // ČERNÉ záhlaví
+    .setTitle("📡 Nová frekvence")
+    .setDescription(`Tvá nová frekvence: **${newNumber}**`);
 
   const roleId = "1386850498509799555";
 
-  // Ping zpráva
+  // 🔔 Ping zpráva
   const pingMsg = await interaction.channel.send({
     content: `<@&${roleId}>`,
     allowedMentions: { roles: [roleId] }
@@ -102,22 +105,15 @@ client.on(Events.InteractionCreate, async interaction => {
     pingMsg.delete().catch(() => {});
   }, 5000);
 
-  // Aktualizovat embed
+  // Aktualizovat embed (místo nového posílá nový obsah)
   await interaction.update({
     embeds: [newEmbed]
   });
 });
 
-client.login(process.env.TOKEN);
-const express = require("express");
+// === Express Server pro Render ===
 const app = express();
-const PORT = process.env.PORT || 8080;
+const PORT = process.env.PORT || 3000;
 
 app.get("/", (req, res) => {
-  res.send("Bot je aktivní ✅");
-});
-
-app.listen(PORT, () => {
-  console.log(`🌐 Web server běží na portu ${PORT}`);
-});
-
+  res.send("Bot je

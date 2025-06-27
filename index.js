@@ -1,66 +1,3 @@
-require('dotenv').config();
-const express = require("express");
-const {
-  Client,
-  GatewayIntentBits,
-  ActionRowBuilder,
-  ButtonBuilder,
-  ButtonStyle,
-  EmbedBuilder,
-  Events,
-} = require('discord.js');
-
-const client = new Client({
-  intents: [
-    GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.MessageContent
-  ]
-});
-
-const cooldowns = new Map();
-
-client.once(Events.ClientReady, () => {
-  console.log(`✅ Přihlášen jako ${client.user.tag}`);
-});
-
-client.on(Events.MessageCreate, async message => {
-  if (message.content === "!vysilacka") {
-    const randomNumber = Math.floor(Math.random() * 900) + 100;
-
-    const embed = new EmbedBuilder()
-      .setColor(0xff0000)
-      .setTitle("Náhodná frekvence")
-      .setDescription(`Tvá frekvence je: **${randomNumber}**`);
-
-    const button = new ButtonBuilder()
-      .setCustomId("random_number")
-      .setLabel("Změnit frekvenci vysílačky")
-      .setStyle(ButtonStyle.Danger);
-
-    const row = new ActionRowBuilder().addComponents(button);
-
-    const roleId = "1386850498509799555";
-
-    // Ping zpráva
-    const pingMsg = await message.channel.send({
-      content: `<@&${roleId}>`,
-      allowedMentions: { roles: [roleId] }
-    });
-
-    // 🧹 Smazat ping po 5 sekundách
-    setTimeout(() => {
-      pingMsg.delete().catch(() => {});
-    }, 5000);
-
-    // Poslat embed s tlačítkem
-    await message.channel.send({
-      embeds: [embed],
-      components: [row]
-    });
-  }
-});
-
 client.on(Events.InteractionCreate, async interaction => {
   if (!interaction.isButton()) return;
   if (interaction.customId !== "random_number") return;
@@ -68,6 +5,8 @@ client.on(Events.InteractionCreate, async interaction => {
   const userId = interaction.user.id;
   const now = Date.now();
   const cooldownAmount = 2 * 60 * 1000; // 2 minuty
+
+  const logChannelId = "TVÉ_LOG_CHANNEL_ID"; // <- ZDE vlož ID kanálu pro logy
 
   if (cooldowns.has(userId)) {
     const expirationTime = cooldowns.get(userId) + cooldownAmount;
@@ -103,22 +42,16 @@ client.on(Events.InteractionCreate, async interaction => {
     pingMsg.delete().catch(() => {});
   }, 5000);
 
+  // ✅ ODESLAT LOG DO URČITÉHO KANÁLU
+  const logChannel = await client.channels.fetch(1388245637337714861).catch(() => null);
+  if (logChannel && logChannel.isTextBased()) {
+    logChannel.send({
+      content: `🛠️ Uživatel <@${userId}> (${interaction.user.tag}) změnil frekvenci na **${newNumber}**.`
+    });
+  }
+
   // Aktualizovat embed
   await interaction.update({
     embeds: [newEmbed]
   });
-});
-
-client.login(process.env.TOKEN);
-
-// Web server pro Render
-const app = express();
-const PORT = process.env.PORT || 8080;
-
-app.get("/", (req, res) => {
-  res.send("Bot je aktivní ✅");
-});
-
-app.listen(PORT, () => {
-  console.log(`🌐 Web server běží na portu ${PORT}`);
 });

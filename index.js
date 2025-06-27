@@ -7,7 +7,7 @@ const {
   ButtonBuilder,
   ButtonStyle,
   EmbedBuilder,
-  Events,
+  Events
 } = require('discord.js');
 
 const client = new Client({
@@ -18,18 +18,17 @@ const client = new Client({
   ]
 });
 
+// === Nastavení ===
 const cooldowns = new Map();
+const roleId = "1386850498509799555"; // ID role pro ping
+const logChannelId = "1388245637337714861"; // ID kanálu pro logy
 
-// ID role pro ping
-const roleId = "1386850498509799555";
-
-// ID logovacího kanálu
-const logChannelId = "1388245637337714861";
-
+// === Ready ===
 client.once(Events.ClientReady, () => {
   console.log(`✅ Přihlášen jako ${client.user.tag}`);
 });
 
+// === !vysilacka příkaz ===
 client.on(Events.MessageCreate, async message => {
   if (message.content === "!vysilacka") {
     const randomNumber = Math.floor(Math.random() * 900) + 100;
@@ -46,36 +45,50 @@ client.on(Events.MessageCreate, async message => {
 
     const row = new ActionRowBuilder().addComponents(button);
 
-    // Ping zpráva
+    // Ping zpráva (jen jednou)
     const pingMsg = await message.channel.send({
       content: `<@&${roleId}>`,
       allowedMentions: { roles: [roleId] }
     });
 
-    // 🧹 Smazat ping po 5 sekundách
     setTimeout(() => {
       pingMsg.delete().catch(() => {});
     }, 5000);
 
-    // Embed s tlačítkem
+    // Poslat embed s tlačítkem
     await message.channel.send({
       embeds: [embed],
       components: [row]
     });
+
+    // === LOG ===
+    const logChannel = await client.channels.fetch(logChannelId).catch(() => null);
+    if (logChannel && logChannel.isTextBased()) {
+      const logEmbed = new EmbedBuilder()
+        .setColor(0xff0000)
+        .setTitle("📢 Použit příkaz `!vysilacka`")
+        .addFields(
+          { name: "Uživatel", value: `${message.author.tag} (${message.author.id})`, inline: false },
+          { name: "Frekvence", value: `${randomNumber}`, inline: true }
+        )
+        .setTimestamp();
+
+      logChannel.send({ embeds: [logEmbed] });
+    }
   }
 });
 
+// === Interakce s tlačítkem ===
 client.on(Events.InteractionCreate, async interaction => {
   if (!interaction.isButton()) return;
   if (interaction.customId !== "random_number") return;
 
   const userId = interaction.user.id;
   const now = Date.now();
-  const cooldownAmount = 2 * 60 * 1000; // 2 minuty
+  const cooldownAmount = 2 * 60 * 1000;
 
   if (cooldowns.has(userId)) {
     const expirationTime = cooldowns.get(userId) + cooldownAmount;
-
     if (now < expirationTime) {
       const remaining = Math.ceil((expirationTime - now) / 1000);
       return interaction.reply({
@@ -94,33 +107,40 @@ client.on(Events.InteractionCreate, async interaction => {
     .setTitle("Nová frekvence")
     .setDescription(`Tvá frekvence: **${newNumber}**`);
 
-  // Log embed
-  const logEmbed = new EmbedBuilder()
-    .setColor(0x00ff00)
-    .setTitle("📻 Změna frekvence")
-    .addFields(
-      { name: "Uživatel", value: `${interaction.user.tag} (${interaction.user.id})`, inline: false },
-      { name: "Nová frekvence", value: `**${newNumber}**`, inline: true },
-      { name: "Čas", value: `<t:${Math.floor(Date.now() / 1000)}:f>`, inline: true }
-    )
-    .setFooter({ text: "Vysílačka log" });
+  // Ping zpráva (jen znovu při změně frekvence)
+  const pingMsg = await interaction.channel.send({
+    content: `<@&${roleId}>`,
+    allowedMentions: { roles: [roleId] }
+  });
 
-  // Odeslat log
-  const logChannel = await client.channels.fetch(logChannelId).catch(() => null);
-  if (logChannel && logChannel.isTextBased()) {
-    logChannel.send({ embeds: [logEmbed] }).catch(console.error);
-  }
+  setTimeout(() => {
+    pingMsg.delete().catch(() => {});
+  }, 5000);
 
-  // ✅ Odpověď s novým embedem (bez pingu role!)
   await interaction.update({
     embeds: [newEmbed]
   });
+
+  // === LOG ===
+  const logChannel = await client.channels.fetch(logChannelId).catch(() => null);
+  if (logChannel && logChannel.isTextBased()) {
+    const logEmbed = new EmbedBuilder()
+      .setColor(0xff0000)
+      .setTitle("🔁 Změněna frekvence")
+      .addFields(
+        { name: "Uživatel", value: `${interaction.user.tag} (${interaction.user.id})`, inline: false },
+        { name: "Nová frekvence", value: `${newNumber}`, inline: true }
+      )
+      .setTimestamp();
+
+    logChannel.send({ embeds: [logEmbed] });
+  }
 });
 
-// Přihlášení
+// === Login ===
 client.login(process.env.TOKEN);
 
-// Web server pro Render
+// === Web server pro Render ===
 const app = express();
 const PORT = process.env.PORT || 8080;
 

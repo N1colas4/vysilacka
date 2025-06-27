@@ -18,18 +18,18 @@ const client = new Client({
   ]
 });
 
-// === Cooldown mapa ===
 const cooldowns = new Map();
 
-// === ID role a logovacího kanálu ===
-const roleId = "1386850498509799555";            // <- ID role pro ping
-const logChannelId = "1388245637337714861";      // <- ID kanálu pro logy
+// ID role pro ping
+const roleId = "1386850498509799555";
+
+// ID logovacího kanálu
+const logChannelId = "1388245637337714861";
 
 client.once(Events.ClientReady, () => {
   console.log(`✅ Přihlášen jako ${client.user.tag}`);
 });
 
-// === Příkaz !vysilacka ===
 client.on(Events.MessageCreate, async message => {
   if (message.content === "!vysilacka") {
     const randomNumber = Math.floor(Math.random() * 900) + 100;
@@ -52,6 +52,7 @@ client.on(Events.MessageCreate, async message => {
       allowedMentions: { roles: [roleId] }
     });
 
+    // 🧹 Smazat ping po 5 sekundách
     setTimeout(() => {
       pingMsg.delete().catch(() => {});
     }, 5000);
@@ -61,23 +62,16 @@ client.on(Events.MessageCreate, async message => {
       embeds: [embed],
       components: [row]
     });
-
-    // === Log do kanálu ===
-    const logChannel = await client.channels.fetch(logChannelId).catch(() => null);
-    if (logChannel && logChannel.isTextBased()) {
-      logChannel.send(`📻 **${message.author.tag}** (${message.author.id}) použil příkaz \`!vysilacka\`.`);
-    }
   }
 });
 
-// === Reakce na stisk tlačítka ===
 client.on(Events.InteractionCreate, async interaction => {
   if (!interaction.isButton()) return;
   if (interaction.customId !== "random_number") return;
 
   const userId = interaction.user.id;
   const now = Date.now();
-  const cooldownAmount = 2 * 60 * 1000;
+  const cooldownAmount = 2 * 60 * 1000; // 2 minuty
 
   if (cooldowns.has(userId)) {
     const expirationTime = cooldowns.get(userId) + cooldownAmount;
@@ -100,30 +94,33 @@ client.on(Events.InteractionCreate, async interaction => {
     .setTitle("Nová frekvence")
     .setDescription(`Tvá frekvence: **${newNumber}**`);
 
-  const pingMsg = await interaction.channel.send({
-    content: `<@&${roleId}>`,
-    allowedMentions: { roles: [roleId] }
-  });
+  // Log embed
+  const logEmbed = new EmbedBuilder()
+    .setColor(0x00ff00)
+    .setTitle("📻 Změna frekvence")
+    .addFields(
+      { name: "Uživatel", value: `${interaction.user.tag} (${interaction.user.id})`, inline: false },
+      { name: "Nová frekvence", value: `**${newNumber}**`, inline: true },
+      { name: "Čas", value: `<t:${Math.floor(Date.now() / 1000)}:f>`, inline: true }
+    )
+    .setFooter({ text: "Vysílačka log" });
 
-  setTimeout(() => {
-    pingMsg.delete().catch(() => {});
-  }, 5000);
-
-  // === Log interakce ===
+  // Odeslat log
   const logChannel = await client.channels.fetch(logChannelId).catch(() => null);
   if (logChannel && logChannel.isTextBased()) {
-    logChannel.send(`🔘 **${interaction.user.tag}** (${interaction.user.id}) klikl na tlačítko a získal frekvenci **${newNumber}**.`);
+    logChannel.send({ embeds: [logEmbed] }).catch(console.error);
   }
 
+  // ✅ Odpověď s novým embedem (bez pingu role!)
   await interaction.update({
     embeds: [newEmbed]
   });
 });
 
-// === Přihlášení ===
+// Přihlášení
 client.login(process.env.TOKEN);
 
-// === Web server (pro Render apod.) ===
+// Web server pro Render
 const app = express();
 const PORT = process.env.PORT || 8080;
 

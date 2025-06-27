@@ -7,10 +7,9 @@ const {
   ButtonBuilder,
   ButtonStyle,
   EmbedBuilder,
-  Events
+  Events,
 } = require('discord.js');
 
-// === Discord client ===
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
@@ -22,9 +21,9 @@ const client = new Client({
 // === Cooldown mapa ===
 const cooldowns = new Map();
 
-// === ID role pro ping a logovacího kanálu ===
-const roleId = "1386850498509799555"; // <- nastav svou roli
-const logChannelId = "TVŮJ_LOG_CHANNEL_ID"; // <- sem vlož ID logovacího kanálu
+// === ID role a logovacího kanálu ===
+const roleId = "1386850498509799555";            // <- ID role pro ping
+const logChannelId = "1388245637337714861";      // <- ID kanálu pro logy
 
 client.once(Events.ClientReady, () => {
   console.log(`✅ Přihlášen jako ${client.user.tag}`);
@@ -66,12 +65,12 @@ client.on(Events.MessageCreate, async message => {
     // === Log do kanálu ===
     const logChannel = await client.channels.fetch(logChannelId).catch(() => null);
     if (logChannel && logChannel.isTextBased()) {
-      logChannel.send(`📻 Uživatel **${message.author.tag}** (${message.author.id}) spustil příkaz \`!vysilacka\`.`);
+      logChannel.send(`📻 **${message.author.tag}** (${message.author.id}) použil příkaz \`!vysilacka\`.`);
     }
   }
 });
 
-// === Interakce s tlačítkem ===
+// === Reakce na stisk tlačítka ===
 client.on(Events.InteractionCreate, async interaction => {
   if (!interaction.isButton()) return;
   if (interaction.customId !== "random_number") return;
@@ -113,7 +112,7 @@ client.on(Events.InteractionCreate, async interaction => {
   // === Log interakce ===
   const logChannel = await client.channels.fetch(logChannelId).catch(() => null);
   if (logChannel && logChannel.isTextBased()) {
-    logChannel.send(`🛠️ Uživatel **${interaction.user.tag}** (${interaction.user.id}) změnil frekvenci na **${newNumber}**.`);
+    logChannel.send(`🔘 **${interaction.user.tag}** (${interaction.user.id}) klikl na tlačítko a získal frekvenci **${newNumber}**.`);
   }
 
   await interaction.update({
@@ -124,7 +123,7 @@ client.on(Events.InteractionCreate, async interaction => {
 // === Přihlášení ===
 client.login(process.env.TOKEN);
 
-// === Web server pro Render ===
+// === Web server (pro Render apod.) ===
 const app = express();
 const PORT = process.env.PORT || 8080;
 
